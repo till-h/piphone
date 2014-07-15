@@ -4,15 +4,17 @@ import matplotlib
 import matplotlib.pyplot as plt
 import RPi.GPIO as GPIO
 import threading
+import numpy
 
 class monitor(threading.Thread):
-	def __init__(self, start_pin, stop_pin, timeout = 1):
+	def __init__(self, start_pin, stop_pin, timeout = 6):
 		super(monitor, self).__init__()
 		self.__rec_start = threading.Event()
 		self.__rec_stop  = threading.Event()
 		self.__start_pin = start_pin
 		self.__stop_pin = stop_pin
 		self.__t_timeout = timeout
+		self.daemon = True
 		self.start()
 
 	def run(self):
@@ -34,19 +36,21 @@ class monitor(threading.Thread):
 		'''
 		self.__rec_start.wait()
 			
-	def stop():
+	def stop(self):
 		return self.__rec_stop.isSet()
 
 
-class reader(threading.Thread):
+class reader(object):
 	def __init__(self, monitor, pins):
-		super(reader, self).__init__()
+		#super(reader, self).__init__()
 		self.__monitor = monitor
 		self.__pins = pins
 		self.__reading = {}
-		self.start()
-
-	def run(self):
+		self.__reading["time"] = []
+		for p in self.__pins:
+			self.__reading[str(p) + "_data"] = []
+		#self.start()
+	#def run(self):
 		self.__monitor.wait_for_start()
 		while not self.__monitor.stop():
 			time.sleep(0.005)
@@ -71,15 +75,17 @@ class plotter(object):
 			GPIO.setup(p, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 	def record(self):
-		self.__monitor = monitor(8, 8)
+		self.__monitor = monitor(8, 7)
 		self.__reader = reader(self.__monitor, self.__pins)
 
 	def plot(self):
 		plt.figure()
 		readings = self.__reader.get_readings()
 		for key in (key for key in readings if key.find("_data") > 0):
-			plt.plot(readings["time"], readings[key])
+			plt.plot(numpy.array(readings["time"]) - readings["time"][0], readings[key])
 		plt.show(block = False)
+		raw_input()
+		plot.close("all")
 
 	def close(self, param):
 		plt.close(param)
@@ -90,6 +96,4 @@ if __name__ == "__main__":
 	plot.record()
 	print("plotting")
 	plot.plot()
-	raw_input()
-	plot.close("all")
 

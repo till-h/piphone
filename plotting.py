@@ -7,7 +7,10 @@ import threading
 import numpy
 
 class monitor(threading.Thread):
-	def __init__(self, start_pin, stop_pin, timeout = 6):
+	'''
+	Class to monitor the dialpad and signal when to start and when to stop recording.
+	'''
+	def __init__(self, start_pin, stop_pin, timeout = 1):
 		super(monitor, self).__init__()
 		self.__rec_start = threading.Event()
 		self.__rec_stop  = threading.Event()
@@ -18,18 +21,20 @@ class monitor(threading.Thread):
 		self.start()
 
 	def run(self):
+		'''
+		self.__rec_start.set()
+		time.sleep(5)
+		self.__rec_stop.set()
+		'''
 		GPIO.wait_for_edge(self.__start_pin, GPIO.FALLING)
 		self.__rec_start.set()
-		old_state = GPIO.input(self.__stop_pin)
-		last_change = time.time()
-		while (time.time() - last_change < self.__timeout):
-			new_state = GPIO.input(self.__stop_pin)
-			if new_state != old_state:
-				old_state = new_state
-				last_change = time.time()
-			time.sleep(0.01)	
+		old_reading, new_reading = None, None
+		while new_reading == old_reading:
+			old_reading = GPIO.input(self.__stop_pin)
+			time.sleep(0.01)
+			new_reading = GPIO.input(self.__stop_pin)	
 		self.__rec_stop.set()
-		
+
 	def wait_for_start(self):
 		'''
 		Blocks until start event is set.
@@ -37,10 +42,16 @@ class monitor(threading.Thread):
 		self.__rec_start.wait()
 			
 	def stop(self):
+		'''
+		Returns True if recording can be finished.
+		'''
 		return self.__rec_stop.isSet()
 
 
 class reader(object):
+	'''
+	Class to read out and save pin potentials.
+	'''
 	def __init__(self, monitor, pins):
 		#super(reader, self).__init__()
 		self.__monitor = monitor
@@ -65,6 +76,9 @@ class reader(object):
 		return self.__reading
 
 class plotter(object):
+	'''
+	Top-level class to capture the dialpad operation at large.
+	'''
 	def __init__(self):
 		# Set active pins
 		GPIO.setmode(GPIO.BCM)
@@ -75,7 +89,7 @@ class plotter(object):
 			GPIO.setup(p, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 	def record(self):
-		self.__monitor = monitor(8, 7)
+		self.__monitor = monitor(8, 8)
 		self.__reader = reader(self.__monitor, self.__pins)
 
 	def plot(self):

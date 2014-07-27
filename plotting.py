@@ -13,7 +13,7 @@ class monitor(threading.Thread):
 		self.__rec_stop  = threading.Event()
 		self.__start_pin = start_pin
 		self.__stop_pin = stop_pin
-		self.__t_timeout = timeout
+		self.__timeout = timeout
 		self.daemon = True
 		self.start()
 
@@ -22,7 +22,7 @@ class monitor(threading.Thread):
 		self.__rec_start.set()
 		old_state = GPIO.input(self.__stop_pin)
 		last_change = time.time()
-		while (time.time() - last_change < self.__t_timeout):
+		while (time.time() - last_change < self.__timeout):
 			new_state = GPIO.input(self.__stop_pin)
 			if new_state != old_state:
 				old_state = new_state
@@ -82,7 +82,8 @@ class plotter(object):
 		plt.figure()
 		readings = self.__reader.get_readings()
 		for key in (key for key in readings if key.find("_data") > 0):
-			plt.plot(numpy.array(readings["time"]) - readings["time"][0], readings[key])
+			plt.plot(numpy.array(readings["time"]) - readings["time"][0], readings[key], label = key.replace("_data",""))
+		plt.legend()
 		plt.show(block = False)
 		raw_input()
 		plot.close("all")

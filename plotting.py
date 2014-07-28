@@ -16,23 +16,13 @@ class monitor(threading.Thread):
 		self.__rec_stop  = threading.Event()
 		self.__start_pin = start_pin
 		self.__stop_pin = stop_pin
-		self.__timeout = timeout
 		self.daemon = True
 		self.start()
 
 	def run(self):
-		'''
+		GPIO.wait_for_edge(self.__start_pin, GPIO.BOTH)
 		self.__rec_start.set()
-		time.sleep(5)
-		self.__rec_stop.set()
-		'''
-		GPIO.wait_for_edge(self.__start_pin, GPIO.FALLING)
-		self.__rec_start.set()
-		old_reading, new_reading = None, None
-		while new_reading == old_reading:
-			old_reading = GPIO.input(self.__stop_pin)
-			time.sleep(0.01)
-			new_reading = GPIO.input(self.__stop_pin)	
+		GPIO.wait_for_edge(self.__stop_pin, GPIO.BOTH)
 		self.__rec_stop.set()
 
 	def wait_for_start(self):
@@ -53,15 +43,14 @@ class reader(object):
 	Class to read out and save pin potentials.
 	'''
 	def __init__(self, monitor, pins):
-		#super(reader, self).__init__()
 		self.__monitor = monitor
 		self.__pins = pins
 		self.__reading = {}
 		self.__reading["time"] = []
 		for p in self.__pins:
 			self.__reading[str(p) + "_data"] = []
-		#self.start()
-	#def run(self):
+
+	def start(self):
 		self.__monitor.wait_for_start()
 		while not self.__monitor.stop():
 			time.sleep(0.005)
@@ -91,6 +80,7 @@ class plotter(object):
 	def record(self):
 		self.__monitor = monitor(8, 8)
 		self.__reader = reader(self.__monitor, self.__pins)
+		self.__reader.start()
 
 	def plot(self):
 		plt.figure()
@@ -106,9 +96,9 @@ class plotter(object):
 		plt.close(param)
 
 if __name__ == "__main__":
-	print("plotter")
 	plot = plotter()
+	print("Plotter. Please dial a number.")
 	plot.record()
-	print("plotting")
+	print("Plotting...")
 	plot.plot()
 

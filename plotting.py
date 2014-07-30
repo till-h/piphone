@@ -45,6 +45,8 @@ class reader(object):
 	def __init__(self, monitor, pins):
 		self.__monitor = monitor
 		self.__pins = pins
+		for p in self.__pins:
+			GPIO.setup(p, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 		self.__reading = {}
 		self.__reading["time"] = []
 		for p in self.__pins:
@@ -71,15 +73,10 @@ class plotter(object):
 	def __init__(self):
 		# Set active pins
 		GPIO.setmode(GPIO.BCM)
-		self.__pins = [7, 8]
-		self.__monitor = None
-		self.__reader = None
-		for p in self.__pins:
-			GPIO.setup(p, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		self.__monitor = monitor(8, 8)
+		self.__reader = reader(self.__monitor, [7, 8])
 
 	def record(self):
-		self.__monitor = monitor(8, 8)
-		self.__reader = reader(self.__monitor, self.__pins)
 		self.__reader.start()
 
 	def plot(self):

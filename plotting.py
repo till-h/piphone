@@ -63,7 +63,7 @@ class reader(object):
 				else:
 					self.__reading[str(p) + "_data"].append(0)
 	
-	def get_readings(self):
+	def get_reading(self):
 		return self.__reading
 
 class plotter(object):
@@ -81,13 +81,16 @@ class plotter(object):
 
 	def plot(self):
 		plt.figure()
-		readings = self.__reader.get_readings()
+		readings = self.__reader.get_reading()
 		for key in (key for key in readings if key.find("_data") > 0):
 			plt.plot(numpy.array(readings["time"]) - readings["time"][0], readings[key], label = key.replace("_data",""))
 		plt.legend()
 		plt.show(block = False)
 		raw_input()
 		plot.close("all")
+	
+	def get_reading(self):
+		return self.__reader.get_reading()
 
 	def close(self, param):
 		plt.close(param)
@@ -97,5 +100,6 @@ if __name__ == "__main__":
 	print("Plotter. Please dial a number.")
 	plot.record()
 	print("Plotting...")
+	print plot.get_reading()
 	plot.plot()
 

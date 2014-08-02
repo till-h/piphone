@@ -67,7 +67,10 @@ class reader(object):
 				else:
 					self.__reading[str(p) + "_data"].append(0)
 	
-	def get_reading(self, pin = None):
+	def get_reading(self):
+		return self.__reading
+
+	def get_reading_pin(self, pin = None):
 		if pin == None:
 			return self.__reading
 		else:
@@ -81,11 +84,10 @@ class dialpad(object):
 		GPIO.setmode(GPIO.BCM)
 		self.__monitor = monitor(8, 8)
 		self.__reader = reader(self.__monitor, [7, 8])
-		self.__analyser = crosscorrelation_analyser()
 
 	def dial_one_number(self):
 		self.__reader.read_one_number()
-		return self.__analyser.analyse(self.__reader.get_reading(7))
+		return time_domain_analyser().analyse(self.__reader.get_reading())
 
 	def plot(self):
 		plt.figure()
@@ -123,7 +125,26 @@ class crosscorrelation_analyser(object):
 		crosscorrelation.sort()
 		return digit
 		
-	
+class time_domain_analyser(object):
+	'''
+	Analyse dial pulse train in time domain.
+	'''
+	def analyse(self, reading, pin):
+		num = 0
+		while len(reading["data_" + str(pin)]) > 0:
+			# truncate leading zeros
+			trunc_idx = reading["data_" + str(pin)].index(1)
+			reading["data_" + str(pin)] = reading["data_" + str(pin)][trunc_idx:]
+			reading["time"] = reading["time"][trunc_idx:]
+			t_0 = reading["time"][0]
+			# truncate leading ones
+			trunc_idx = reading["data_" + str(pin)].index(0)
+			reading["data_" + str(pin)] = reading["data_" + str(pin)][trunc_idx:]
+			reading["time"] = reading["time"][trunc_idx:]
+			t_1 = reading["time"][0]
+			if abs(t_1 - t_0 - t_target) < 0.01:
+				num += 1
+		return num
 
 if __name__ == "__main__":
 	dialpad = dialpad()

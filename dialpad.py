@@ -102,33 +102,13 @@ class dialpad(object):
 	def close(self, param):
 		plt.close(param)
 
-class crosscorrelation_analyser(object):
-	'''
-	Analyse the reading coming from the dialpad (reader class)
-	to determine which number was dialled.
-	'''
-	def __init__(self, one_pulse = None):
-		if one_pulse == None:
-			self.__one_pulse = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
-		self.__autocorrelation_max = max(numpy.correlate(self.__one_pulse, self.__one_pulse, mode = 'valid'))
-
-	def analyse(self, reading):
-		try:
-			truncation_idx = numpy.nonzero(numpy.diff(reading))[0][0]
-		except IndexError:
-			return None
-		reading = reading[truncation_idx:]
-		crosscorrelation = numpy.correlate(reading, self.__one_pulse, mode='valid')
-		plt.figure()
-		plt.plot(crosscorrelation)
-		plt.show(block = True)
-		crosscorrelation.sort()
-		return digit
-		
 class time_domain_analyser(object):
 	'''
 	Analyse dial pulse train in time domain.
 	'''
+	def __init__(self):
+		self.__t_target = 0.03
+
 	def analyse(self, reading, pin):
 		num = 0
 		while len(reading["data_" + str(pin)]) > 0:
@@ -142,7 +122,7 @@ class time_domain_analyser(object):
 			reading["data_" + str(pin)] = reading["data_" + str(pin)][trunc_idx:]
 			reading["time"] = reading["time"][trunc_idx:]
 			t_1 = reading["time"][0]
-			if abs(t_1 - t_0 - t_target) < 0.01:
+			if abs(t_1 - t_0 - self.__t_target) < 0.01:
 				num += 1
 		return num
 

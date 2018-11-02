@@ -22,4 +22,6 @@ The call initiates, but immediately hangs up. Checked that this is the same beha
 
 Maybe an option
 
+https://www.twilio.com/console/runtime/api-explorer/voice/calls/create
+https://www.twilio.com/docs/voice/api/call#create-a-call-resource
 https://github.com/zaccolley/twilio-call-phone-from-browser/blob/master/server.js

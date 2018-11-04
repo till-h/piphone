@@ -1,0 +1,3 @@
+[submodule "clicktocall-flask"]
+	path = clicktocall-flask
+	url = https://github.com/till-h/clicktocall-flask.git

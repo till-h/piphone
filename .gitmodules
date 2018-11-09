@@ -1,3 +1,6 @@
 [submodule "clicktocall-flask"]
 	path = clicktocall-flask
 	url = https://github.com/till-h/clicktocall-flask.git
+[submodule "browser-calls-flask"]
+	path = browser-calls-flask
+	url = https://github.com/till-h/browser-calls-flask.git

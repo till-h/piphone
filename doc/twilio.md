@@ -8,19 +8,44 @@ This consists of the following.
 2. HTML -- landing page for the browser
 3. Javascript -- client-side program flow and Twilio Device to allow browser-based voice calls
 
-Bringing up a Twilio application goes as follows:
+## Using the minimal app
 
 1. Start ngrok
-    ngrok http 5000
+
+        ngrok http 5000
+
 2. Start the Flask http server application
-    python app.py run
-3. Surf to `localhost:5000` in Chromium (we'll try to use it later in headless mode)
-  1. The page should be rendered
-4. Troubleshooting tips
-  1. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
 
-Then, making a call from a browser to a phone number goes as follows.
+        python app.py run
 
+3. Surf to `localhost:5000` in Chromium (we'll try to use it later in headless mode).
+4. The user enters a phone number to be called into the field or uses the default value and presses call.
+5. Somewhere, a phone rings.
+
+### Troubleshooting tips
+   1. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
+
+## Program flow
+
+The following outlines the program flow that makes the above use case possible.
+
+1. The browser requests `localhost:5000/`. This renders `index.html`, passing along the default number to be called and the caller ID.
+2. When the page has loaded, the Javascript in `app.js` requests a capability token from the Flask backend at `localhost:5000/token`.
+   1. Flask returns a Token to the browser that allows the Twilio Device in the browser to make outgoing calls.
+   
+      > **Twilio Capability Tokes** contain the SID of the Twilio user account and an authorisation token. These allow Twilo to connect the call from a so-called **Twilio Device** (that manages the browser side of the call) to a user account. This is required for billing etc. Also, the Token assigns the Device its capabilities, such as "You can make outgoing calls" or "You can receive incoming calls".
+
+   2. A Twilio Device is set up with the capabilities defined inside the Token.
+   3. When the Device is ready, the call button is activated.
+   4. In our case, the outgoing-calls capability that was returned from `/token` contains the SID of a TwiML Application.
+
+      > **TwiML** is a micro language that defines the behaviour during a Twilio call. A **TwiML Application**, when contacted by a Twilo Device, maps the request to a TwiML URL from which the Device learns what to do when it has been instructed to make a call.
+
+4. When the user presses the call button, the Twilio Device makes a request to the URL that the TwiML application points to, in our case `http://aabb1122.ngrok.io/voice`. This request contains as parameters the number to be called and the caller ID.
+5. `http://aabb1122.ngrok.io/voice` directs to `localhost:5000/voice`, using ngrok.
+6. `localhost:5000/voice` contains TwiML that instructs the device to
+   1. Read out the number being called
+   2. Dial the number, thus initiating the connection from the Device inside the browser to a phone number.
 
 # Official Twilio Docs
 https://www.twilio.com/docs/

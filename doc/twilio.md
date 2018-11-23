@@ -1,6 +1,10 @@
 Development Notes
 =================
 
+# Audio in Chromium
+Setting .asoundrc to force audio devices.
+https://pimylifeup.com/raspberry-pi-google-assistant/
+
 # A minimal Browser-to-phone-calls application
 This consists of the following.
 
@@ -14,16 +18,15 @@ This consists of the following.
 
         ngrok http 5000
 
-2. Start the Flask http server application
+2. Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
+
+3. Start the Flask http server application
 
         python app.py run
 
-3. Surf to `localhost:5000` in Chromium (we'll try to use it later in headless mode).
-4. The user enters a phone number to be called into the field or uses the default value and presses call.
-5. Somewhere, a phone rings.
-
-### Troubleshooting tips
-   1. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
+4. Surf to `localhost:5000` in Chromium (we'll try to use it later in headless mode).
+5. The user enters a phone number to be called into the field or uses the default value and presses call.
+6. Somewhere, a phone rings.
 
 ## Program flow
 

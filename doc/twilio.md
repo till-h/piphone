@@ -8,17 +8,19 @@ https://pimylifeup.com/raspberry-pi-google-assistant/
 # A minimal Browser-to-phone-calls application
 This consists of the following.
 
-1. Flask backend -- serves capability token and TwiML
+1. Flask backend -- serves capability token (to browser) and TwiML (to Twilio)
 2. HTML -- landing page for the browser
 3. Javascript -- client-side program flow and Twilio Device to allow browser-based voice calls
 
 ## Using the minimal app
-
+~~
 1. Start ngrok
 
         ngrok http 5000
 
 2. Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
+~~
+1. The TwiML response is now saved on the Twilio Cloud.
 
 3. Start the Flask http server application
 

@@ -1,0 +1,10 @@
+Save this file as a TwiML bin on your Twilio account: https://www.twilio.com/console/runtime/twiml-bins/
+Save its URL as the voice endpoint for the Twilio App that is connected to your Twilio number.
+
+-----------------
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Establishing call</Say>
+  <Dial callerId="{{callerId}}">{{phoneNumber}}</Dial>
+</Response>

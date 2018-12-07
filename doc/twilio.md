@@ -5,6 +5,8 @@ Development Notes
 Setting .asoundrc to force audio devices.
 https://pimylifeup.com/raspberry-pi-google-assistant/
 
+Also see sibling files about sound setup.
+
 # A minimal Browser-to-phone-calls application
 This consists of the following.
 
@@ -13,13 +15,11 @@ This consists of the following.
 3. Javascript -- client-side program flow and Twilio Device to allow browser-based voice calls
 
 ## Using the minimal app
-~~
-1. Start ngrok
+1. ~~Start ngrok~~
 
-        ngrok http 5000
+        ~~ngrok http 5000~~
 
-2. Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.
-~~
+2. ~~Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.~~
 1. The TwiML response is now saved on the Twilio Cloud.
 
 3. Start the Flask http server application

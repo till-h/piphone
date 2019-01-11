@@ -1,6 +1,17 @@
 Development Notes
 =================
 
+# Dependencies
+
+        sudo apt install libffi libffi-dev openssl libssl-dev
+        pip install Flask tox twilio
+
+and if you like it
+
+        sudo apt install python-virtualenv
+
+The pip installation may take a while on an RPi.
+
 # Audio in Chromium
 Setting .asoundrc to force audio devices.
 https://pimylifeup.com/raspberry-pi-google-assistant/
@@ -10,7 +21,7 @@ Also see sibling files about sound setup.
 # A minimal Browser-to-phone-calls application
 This consists of the following.
 
-1. Flask backend -- serves capability token (to browser) and TwiML (to Twilio)
+1. Flask backend -- serves capability token (to browser) ~~and TwiML (to Twilio)~~
 2. HTML -- landing page for the browser
 3. Javascript -- client-side program flow and Twilio Device to allow browser-based voice calls
 
@@ -21,6 +32,8 @@ This consists of the following.
 
 2. ~~Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.~~
 1. The TwiML response is now saved on the Twilio Cloud.
+
+1. Enable the virtualenv if you set one up, `piphone/bin/activate`
 
 3. Start the Flask http server application
 

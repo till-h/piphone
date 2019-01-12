@@ -6,7 +6,7 @@ Development Notes
         sudo apt install libffi libffi-dev openssl libssl-dev
         pip install Flask tox twilio
 
-and if you like it
+and if you want to install Python dependencies locally,
 
         sudo apt install python-virtualenv
 
@@ -26,14 +26,10 @@ This consists of the following.
 3. Javascript -- client-side program flow and Twilio Device to allow browser-based voice calls
 
 ## Using the minimal app
-1. ~~Start ngrok~~
 
-        ~~ngrok http 5000~~
+1. The TwiML response is made available as a TwiML Bin, https://www.twilio.com/console/runtime/twiml-bins.
 
-2. ~~Enter the ngrok URL as the Twilio application endpoint for voice. Ensure that the Twilio voice App for this application has the correct ngrok endpoint. It should be `http://aabb1122.ngrok.io/voice`; the Flask app serves the voice TwiML at this address.~~
-1. The TwiML response is now saved on the Twilio Cloud.
-
-1. Enable the virtualenv if you set one up, `piphone/bin/activate`
+1. Enable the virtualenv if you set one up, something like `source piphone/bin/activate`.
 
 3. Start the Flask http server application
 
@@ -42,6 +38,15 @@ This consists of the following.
 4. Surf to `localhost:5000` in Chromium (we'll try to use it later in headless mode).
 5. The user enters a phone number to be called into the field or uses the default value and presses call.
 6. Somewhere, a phone rings.
+
+## Headless Chromium
+
+This will be useful when the UI changes from a browser window to less... Supplying the number as a URL query string makes the `app.js` immediately dial that number, instead of waiting for the user to press the `Call` button.
+
+        chromium --headless --disable-gpu --use-fake-ui-for-media-stream --remote-debugging-port=9222 http://localhost:5000/\?number\=%27%2b0123456789%27
+
+`%27` are single quotation marks, `%2b` is the plus sign for a country code.
+This has worked with Chromium Version 71.0.3578.98 (Official Build) on Arch Linux (64-bit), https://archive.archlinux.org/packages/c/chromium/chromium-71.0.3578.98-3-x86_64.pkg.tar.xz.
 
 ## Program flow
 
@@ -70,7 +75,7 @@ Happy chatting!
 # Official Twilio Docs
 https://www.twilio.com/docs/
 
-## Javascript CLient Device
+## Javascript Client Device
 This device is required to do call control and data flow within the browser.
 https://www.twilio.com/docs/voice/client/javascript/device
 

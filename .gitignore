@@ -1,0 +1,10 @@
+# Secrets: never commit
+.env
+baresip/accounts
+baresip_config/accounts
+
+# Local / generated
+.venv/
+__pycache__/
+build/
+.claude/settings.local.json

@@ -1,0 +1,57 @@
+# baresip configuration for piphone (baresip 1.1.0, Raspberry Pi OS Trixie)
+#
+# piphone.sh starts baresip with:  baresip -f <this folder>
+# Anything not set here uses baresip's built-in default.
+# Comments go on their own lines because baresip does not allow them
+# after a value.
+
+
+# ---- SIP signalling: TLS only, provider certificate must be valid ----------
+
+sip_trans_def		tls
+sip_cafile		/etc/ssl/certs/ca-certificates.crt
+sip_verify_server	yes
+
+
+# ---- Calls -----------------------------------------------------------------
+
+# One call at a time.
+call_max_calls		1
+# Hang up if no audio arrives for 60 seconds, so a stuck call cannot keep
+# running up charges.
+rtp_timeout		60
+
+
+# ---- Audio -----------------------------------------------------------------
+
+# "default" is the first ALSA sound card. The piphone SD-card image switches
+# HDMI audio off, so the first card is your USB headset or USB sound adapter.
+audio_player		alsa,default
+audio_source		alsa,default
+audio_alert		alsa,default
+
+# Ring and busy tones that come with the baresip package.
+audio_path		/usr/share/baresip
+
+
+# ---- Modules: only what piphone needs --------------------------------------
+# No remote-control modules (ctrl_tcp, httpd, mqtt, ...) are loaded, so
+# nobody can operate the phone over the network.
+
+module_path		/usr/lib/baresip/modules
+
+# Keyboard input in the terminal.
+module			stdio.so
+# Sound card.
+module			alsa.so
+# Audio codecs, best quality first.
+module			opus.so
+module			g722.so
+module			g711.so
+# Encrypted call audio (SRTP).
+module			srtp.so
+
+# Reads the SIP login from ./accounts (written by setup.sh).
+module_app		account.so
+# The commands you type: /dial, /hangup, /accept, /help, ...
+module_app		menu.so

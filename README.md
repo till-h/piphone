@@ -1,216 +1,106 @@
-# piphone
+# piphone (v2)
 
-A Raspberry Pi VOIP system for making calls to real landlines and mobiles via a SIP trunk provider.
+> **New development (November 2026).** This branch starts from scratch and
+> shares no history with `master`, which holds an unrelated 2018/19 attempt
+> (Twilio + Chromium).
+
+A Raspberry Pi that calls real landline and mobile numbers. You type the
+number in a terminal over SSH and talk through a USB headset.
 
 ```
-piphone> dial +447911123456
-[piphone] Dialling sip:+447911123456@sip.voip.ms ...
-[piphone] Call connected
-piphone> hangup
-[piphone] Call ended
+$ ./piphone.sh
+/dial +441632960961
+...
+/hangup
 ```
-
----
 
 ## How it works
 
 ```
-  [ Pi + USB headset ]
-         |
-    baresip (SIP client)
-         |
-    SIP trunk provider  ←→  Public telephone network (PSTN)
-         |
-  [ landline / mobile ]
+ laptop ──SSH──> Raspberry Pi 5 + USB headset
+                   │  baresip (SIP phone program, from Debian)
+                   │  TLS  = login and call setup, encrypted
+                   │  SRTP = call audio, encrypted
+                   ▼
+                 SIP provider (pay per minute) ──> phone network ──> landline / mobile
 ```
 
-- **baresip** — lightweight SIP client installed via `apt`. Handles the SIP protocol and audio.
-- **piphone.py** — Python wrapper that starts baresip, sends it commands via stdin, and surfaces call events.
-- **SIP trunk provider** — a paid service (pay-per-minute, pennies per call) that bridges your internet connection to the phone network.
+There is no custom program. piphone is a locked-down configuration for
+[baresip](https://github.com/baresip/baresip) plus two short shell scripts:
 
----
+| File | What it does |
+|------|--------------|
+| `setup.sh` | Run once on the Pi. Installs baresip and saves your SIP login to `baresip/accounts`, which only you can read. |
+| `piphone.sh` | Starts the phone. |
+| `baresip/config` | baresip settings, each one commented. |
+| `baresip/accounts` | Your SIP login. Created by `setup.sh` and never committed (see `.gitignore`). |
 
-## Hardware
+## What you need
 
-| Component | Notes |
-|-----------|-------|
-| Raspberry Pi | Any model with networking. Pi Zero W works. |
-| USB audio adapter | **Required for the mic.** The Pi's 3.5mm jack is output-only on most models. A £5 USB dongle works fine. |
-| Headset or handset | Plugs into the USB audio adapter. |
-| Network | Ethernet preferred for reliability; Wi-Fi works. |
+- Raspberry Pi 5 with an SD card and an Ethernet cable to your router
+- **USB headset or USB sound adapter.** The Pi 5 has no headphone jack.
+- A SIP provider account (see below)
 
----
+## 1. SIP provider: choose and lock down
 
-## Choosing a SIP trunk provider
+The provider must offer:
 
-You need a SIP trunk account to route calls to real phone numbers. This is a pay-as-you-go service — typical costs are **£0.01–0.02 per minute** to UK landlines/mobiles.
+- [ ] a **SIP account you register with**, by username, password and server hostname
+- [ ] **TLS and SRTP** encryption
+- [ ] calls to landlines and mobiles, pay as you go, no monthly fee
 
-### What to look for
+In the provider's web portal:
 
-- **Standard SIP/SIP-over-UDP support** — avoid providers that only support proprietary apps or WebRTC.
-- **SIP registration** — you register your device with their server (not just REST API calls). This is required for `baresip` to work.
-- **PSTN termination** — the ability to dial real (+E.164) phone numbers, not just SIP-to-SIP.
-- **Transparent per-minute pricing** — no monthly minimums or hidden fees for a personal project.
-- **No mandatory DID** — for outbound-only use, you don't need to buy a phone number (DID). Some providers require one; others don't.
+- [ ] Create a **separate sub-account** for the Pi with a long random password:
+      16+ characters, letters and digits, optionally `. _ ~ ! * + @ ^ = -`.
+- [ ] **Turn on encryption (TLS/SRTP)** for that sub-account.
+- [ ] **Allow only the countries you actually call.** Stolen SIP logins are
+      mainly used to call expensive international numbers.
+- [ ] If the portal offers it, **only allow registration from your home IP address**.
+- [ ] Keep a **small prepaid balance** and switch **automatic top-up off**.
 
-### Recommended providers
-
-| Provider | Best for | SIP domain | Notes |
-|----------|----------|------------|-------|
-| [VoIP.ms](https://voip.ms) | UK/EU/US, hobbyists | e.g. `uk1.voip.ms` | Cheapest rates, good docs, no monthly fee, standard SIP |
-| [Telnyx](https://telnyx.com) | Reliable, low-latency | `sip.telnyx.com` | Slightly more setup, competitive rates |
-| [Twilio](https://twilio.com) | Easiest signup | `pstn.twilio.com` | Slightly pricier, excellent docs, free trial credit |
-| [Vonage (Nexmo)](https://vonage.com) | EU-focused | `sip.nexmo.com` | Good EU coverage |
-
-### What you'll get from your provider
-
-After signing up you'll receive three things — this is all `piphone` needs:
-
-1. **SIP username** — often your account ID or a number (e.g. `100001_myaccount`)
-2. **SIP password** — your authentication credential
-3. **SIP domain / server** — the hostname to register with (e.g. `uk1.voip.ms`)
-
----
-
-## Setup
-
-### 1. Install system dependencies
-
-Run the setup script on your Raspberry Pi:
+## 2. Install on the Pi
 
 ```bash
-bash setup.sh
+git clone -b v2-new-development https://github.com/till-h/piphone.git
+cd piphone
+./setup.sh        # asks for SIP username, server and password
 ```
 
-This will:
-- Install `baresip` and `alsa-utils` via `apt`
-- Install Python dependencies into `.venv`
-- Create a `.env` file from the template
-
-If you prefer to do it manually:
+## 3. Make a call
 
 ```bash
-sudo apt update
-sudo apt install -y baresip baresip-core alsa-utils
-.venv/bin/pip install -r requirements.txt
-cp .env.example .env
+./piphone.sh
 ```
 
-### 2. Configure your SIP credentials
+| Type | Does |
+|------|------|
+| `/dial +441632960961` | Call a number. Always use `+` and the country code. |
+| `/hangup` | End the call |
+| `/accept` | Answer an incoming call (only if your account has a phone number) |
+| `/reginfo` | Show whether you are registered with the provider |
+| `/help` | List all commands |
+| Ctrl-C | Quit |
 
-```bash
-nano .env
-```
+## Security: what protects what
 
-Fill in the values from your SIP provider's dashboard:
-
-```dotenv
-SIP_USER=your_sip_username
-SIP_DOMAIN=uk1.voip.ms          # your provider's SIP server
-SIP_PASSWORD=your_sip_password
-SIP_OUTBOUND=                   # leave blank to use SIP_DOMAIN
-NUMBER_FORMAT=E164              # E164 = +447911123456 (recommended)
-AUDIO_DEVICE=default            # see audio section below
-```
-
-### 3. Configure audio
-
-List your audio devices:
-
-```bash
-aplay -l    # output devices
-arecord -l  # input/capture devices
-```
-
-If you have a USB audio adapter, it will appear as something like `card 1: Device [...]`. Set:
-
-```dotenv
-AUDIO_DEVICE=hw:1,0
-```
-
-If your system uses PulseAudio or PipeWire (common on Raspberry Pi OS Bookworm), edit `baresip_config/config` and change:
-
-```
-audio_player    alsa,default
-audio_source    alsa,default
-```
-to:
-```
-audio_player    pulse,default
-audio_source    pulse,default
-```
-
-### 4. Run
-
-```bash
-.venv/bin/python piphone.py
-```
-
-On first start, piphone will:
-1. Write a `baresip_config/accounts` file from your `.env` credentials
-2. Start baresip and wait for SIP registration (up to 20 seconds)
-3. Print a prompt once registered
-
----
-
-## Usage
-
-```
-piphone> dial +447911123456     # international format recommended
-piphone> dial 07911123456       # local format also accepted
-piphone> hangup                 # or: h
-piphone> answer                 # answer an incoming call (or: a)
-piphone> mute                   # toggle mic mute (or: m)
-piphone> status                 # show current call state
-piphone> quit                   # exit (or: q)
-```
-
----
-
-## File structure
-
-```
-piphone/
-├── piphone.py              Main application
-├── .env                    Your SIP credentials (never commit this)
-├── .env.example            Credentials template
-├── requirements.txt        Python dependencies (python-dotenv)
-├── setup.sh                One-time setup script
-└── baresip_config/
-    ├── config              baresip settings (audio, codecs, modules)
-    └── accounts            Generated at runtime from .env — do not edit
-```
-
----
+| Threat | Protection |
+|--------|------------|
+| Someone on the network reads your password or listens to calls | TLS for signalling and SRTP for audio, both mandatory. `sip_verify_server yes` rejects a server with a fake certificate. |
+| Another program or user on the Pi reads your password | `baresip/accounts` is mode 600 (only you can read it). |
+| A password containing unusual characters breaks the config | `setup.sh` only accepts characters that are safe in the accounts line. |
+| Someone controls the phone over the network | No remote-control modules are loaded. |
+| A stolen login runs up a big bill | Provider-side limits in step 1. `rtp_timeout` ends calls where the audio has stopped. |
 
 ## Troubleshooting
 
-**Registration times out**
-- Double-check `SIP_USER`, `SIP_DOMAIN`, `SIP_PASSWORD` in `.env`
-- Test network connectivity: `ping uk1.voip.ms` (or your provider's domain)
-- Some providers require UDP port 5060 to be open outbound — check your router/firewall
-
-**No audio / one-way audio**
-- Run `aplay -l` and `arecord -l` to confirm your audio device is visible
-- Set `AUDIO_DEVICE` in `.env` to the correct device (e.g. `hw:1,0`)
-- On PipeWire systems, switch from `alsa` to `pulse` in `baresip_config/config`
-
-**Call connects but remote party can't hear you**
-- The Pi's built-in 3.5mm jack is output-only — you need a USB audio adapter for the microphone
-
-**`baresip: command not found`**
-- Run `sudo apt install baresip baresip-core`
-
-**Codec errors / call drops**
-- Try removing `opus` from `audio_codecs` in `baresip_config/config` to fall back to G.711, which every provider supports
-
----
-
-## Security note
-
-Your `.env` file contains SIP credentials. Never commit it to version control. The `.gitignore` should exclude it — add one if the repo doesn't have it yet:
-
-```
-echo ".env" >> .gitignore
-echo "baresip_config/accounts" >> .gitignore
-```
+- **Not registered** (`/reginfo`): check the username, server and password
+  (`rm baresip/accounts && ./setup.sh`). Make sure TLS is enabled for the
+  sub-account in the provider's portal.
+- **TLS or certificate error:** the provider's server certificate failed the
+  check. Do **not** turn off `sip_verify_server`. Check the hostname, or ask
+  the provider for their TLS hostname.
+- **No sound:** run `aplay -l` and `arecord -l`. The USB headset must be listed
+  as **card 0**.
+- **Call connects but one side is silent:** turn on the provider's NAT option
+  for the sub-account, if it has one.

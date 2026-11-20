@@ -1,59 +1,47 @@
 #!/usr/bin/env bash
-# piphone setup script
-# Run once on your Raspberry Pi to install dependencies
+# piphone setup. Run once on the Raspberry Pi; safe to run again.
+#
+#   1. Installs baresip (the SIP phone program) from Debian's package archive.
+#   2. Asks for your SIP login and saves it to baresip/accounts, a file only
+#      you can read.
 
-set -e
+set -euo pipefail
+cd "$(dirname "$0")"
 
-echo "=== piphone setup ==="
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-# 1. System dependencies
-echo ""
-echo "Installing baresip and audio tools..."
-sudo apt-get update -qq
-sudo apt-get install -y baresip baresip-core alsa-utils
+echo "== 1/2 Installing baresip =="
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends baresip-core alsa-utils ca-certificates
 
-# Install opus codec support (recommended for best audio quality)
-sudo apt-get install -y libopus0 || echo "(opus not available — will use G.711)"
+ACCOUNTS=baresip/accounts
 
-echo ""
-echo "Checking baresip version..."
-baresip -v 2>/dev/null || true
-
-# 2. Python dependencies
-echo ""
-echo "Installing Python dependencies into venv..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if [ ! -d "$SCRIPT_DIR/.venv" ]; then
-    python3 -m venv "$SCRIPT_DIR/.venv"
-fi
-
-"$SCRIPT_DIR/.venv/bin/pip" install --quiet -r "$SCRIPT_DIR/requirements.txt"
-echo "Python deps installed."
-
-# 3. Create .env if it doesn't exist
-if [ ! -f "$SCRIPT_DIR/.env" ]; then
-    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
-    echo ""
-    echo "Created .env from template. Edit it now:"
-    echo "  nano $SCRIPT_DIR/.env"
+if [ -f "$ACCOUNTS" ]; then
+    echo "== 2/2 $ACCOUNTS already exists, keeping it =="
+    echo "   (to enter a new login: rm $ACCOUNTS && ./setup.sh)"
 else
-    echo ""
-    echo ".env already exists — skipping."
+    echo "== 2/2 Your SIP login (from your provider's web portal) =="
+    read -rp  "SIP username:          " sip_user
+    read -rp  "SIP server (hostname): " sip_server
+    read -rsp "SIP password (hidden): " sip_pass; echo
+
+    # Only allow characters that cannot break the one-line accounts format.
+    user_ok='^[A-Za-z0-9._+-]+$'
+    server_ok='^[A-Za-z0-9.-]+$'
+    pass_ok='^[A-Za-z0-9._~!*+@^=-]{16,}$'
+    [[ $sip_user   =~ $user_ok   ]] || die "username: only letters, digits and . _ + -"
+    [[ $sip_server =~ $server_ok ]] || die "server: a plain hostname, e.g. sip.example.com"
+    [[ $sip_pass   =~ $pass_ok   ]] || die "password: 16+ characters; letters, digits and . _ ~ ! * + @ ^ = - only"
+
+    # One baresip account line:
+    #   transport=tls       signalling encrypted (TLS)
+    #   mediaenc=srtp-mand  call audio encrypted (SRTP); calls fail rather than go unencrypted
+    #   regint=600          re-register every 10 minutes
+    umask 077
+    printf '<sip:%s@%s;transport=tls>;auth_pass=%s;mediaenc=srtp-mand;regint=600\n' \
+        "$sip_user" "$sip_server" "$sip_pass" > "$ACCOUNTS"
 fi
 
-# 4. Audio check
-echo ""
-echo "Audio output devices (aplay -l):"
-aplay -l 2>/dev/null || echo "(no audio devices found — connect a USB audio adapter)"
-
-echo ""
-echo "Audio input devices (arecord -l):"
-arecord -l 2>/dev/null || echo "(no audio capture devices found)"
-
-echo ""
-echo "=== Setup complete ==="
-echo ""
-echo "Next steps:"
-echo "  1. Edit your SIP credentials:  nano $SCRIPT_DIR/.env"
-echo "  2. Run piphone:                $SCRIPT_DIR/.venv/bin/python $SCRIPT_DIR/piphone.py"
+chmod 600 "$ACCOUNTS"
+echo
+echo "Setup done. Start the phone with:  ./piphone.sh"

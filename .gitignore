@@ -1,10 +1,9 @@
-# Secrets: never commit
-.env
+# Your SIP login: secret, never commit
 baresip/accounts
-baresip_config/accounts
 
-# Local / generated
-.venv/
-__pycache__/
+# Build output: SD-card image, downloads, generated Pi password
 build/
+
+# Local tool settings
 .claude/settings.local.json
+.venv/

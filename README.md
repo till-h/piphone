@@ -34,12 +34,59 @@ There is no custom program. piphone is a locked-down configuration for
 | `piphone.sh` | Starts the phone. |
 | `baresip/config` | baresip settings, each one commented. |
 | `baresip/accounts` | Your SIP login. Created by `setup.sh` and never committed (see `.gitignore`). |
+| `image/build-image.sh` | Run on your laptop. Builds the SD-card image for the Pi (step 0). |
+| `image/user-data` | First-boot settings in that image: user, SSH key, firewall, automatic updates. |
 
 ## What you need
 
 - Raspberry Pi 5 with an SD card and an Ethernet cable to your router
 - **USB headset or USB sound adapter.** The Pi 5 has no headphone jack.
 - A SIP provider account (see below)
+
+## 0. SD card for the Pi (on your Linux laptop)
+
+No monitor, keyboard or mouse needed for the Pi. On the laptop:
+
+```bash
+image/build-image.sh       # about 1 minute, no root needed
+```
+
+The script downloads the official **Raspberry Pi OS Lite (64-bit, Debian
+Trixie)** image, pinned to one release and checked against its SHA-256. It
+then changes only the boot partition:
+
+- **User** with the same name as your laptop user. **SSH login by key only**,
+  using `~/.ssh/id_ed25519.pub`. To use a different key, pass its `.pub` file
+  as the argument.
+- **sudo password:** randomly generated and saved in `build/pi-sudo-password.txt`
+  (readable only by you). Change it on the Pi with `passwd`.
+- **Firewall:** incoming traffic is blocked except SSH and `piphone.local`
+  name lookup, and only from your home network.
+- **Updates:** installed on first boot, then daily and automatically.
+- **Hardware:** HDMI audio off, so the USB headset is the default sound card.
+  Wi-Fi and Bluetooth off, since the Pi uses the Ethernet cable.
+
+Write the image to the SD card. `dd` overwrites the whole device, so check
+the device name carefully with `lsblk`:
+
+```bash
+lsblk                                  # SD card is e.g. /dev/sdb or /dev/mmcblk0
+sudo umount /dev/sdX?*                 # if the desktop auto-mounted it
+sudo dd if=build/piphone.img of=/dev/sdX bs=4M conv=fsync status=progress
+```
+
+Put the card in the Pi, connect Ethernet to the router, then power. The
+first boot installs updates and may reboot once, so allow about 5 minutes.
+Then:
+
+```bash
+ssh piphone.local        # or: ssh <your-user>@<IP shown in your router>
+```
+
+Why not plain Debian? Plain Debian's support for Pi 5 hardware lags behind
+(for example, its Ethernet runs through the RP1 chip). Raspberry Pi OS Lite
+*is* Debian Trixie plus the Pi's own kernel and firmware, with no desktop
+installed.
 
 ## 1. SIP provider: choose and lock down
 
@@ -91,6 +138,10 @@ cd piphone
 | A password containing unusual characters breaks the config | `setup.sh` only accepts characters that are safe in the accounts line. |
 | Someone controls the phone over the network | No remote-control modules are loaded. |
 | A stolen login runs up a big bill | Provider-side limits in step 1. `rtp_timeout` ends calls where the audio has stopped. |
+| Someone logs in to the Pi | SSH accepts only your key; password login is off; SSH is reachable only from private (home) addresses. |
+| Anything else on the network reaches the Pi | nftables firewall: inbound blocked by default. Wi-Fi and Bluetooth off. |
+| Known security holes stay unpatched | Automatic daily updates from Debian (security) and Raspberry Pi (kernel, firmware). |
+| A bug in baresip leads to full control of the Pi | `sudo` needs a password, so a compromised phone program does not automatically get root. |
 
 ## Troubleshooting
 

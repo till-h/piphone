@@ -1,0 +1,91 @@
+#cloud-config
+#
+# piphone first-boot setup.
+#
+# cloud-init (built into Raspberry Pi OS) reads this file from the SD card's
+# boot partition on the very first boot only. build-image.sh fills in the
+# placeholders PI_USER, SSH_KEY and PW_HASH below.
+
+hostname: piphone
+manage_etc_hosts: true
+
+# ---- Your login --------------------------------------------------------------
+# On Raspberry Pi OS, the first user listed here replaces the default "pi"
+# account and switches off the on-screen setup wizard.
+users:
+  - name: ${PI_USER}
+    groups: [adm, audio, gpio, input, netdev, plugdev, sudo, users, video]
+    shell: /bin/bash
+    lock_passwd: false
+    # This password is only for "sudo". SSH accepts only your key (see below).
+    hashed_passwd: "${PW_HASH}"
+    ssh_authorized_keys:
+      - "${SSH_KEY}"
+
+# SSH: key login only, password login off.
+ssh_pwauth: false
+
+# ---- Updates -----------------------------------------------------------------
+# Install all updates now (rebooting once if needed), then every day
+# automatically (see the files below).
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+packages:
+  - git
+  - unattended-upgrades
+
+write_files:
+  # Firewall. Nothing may connect in except SSH and mDNS (piphone.local) from
+  # your home network. The Pi's own outgoing traffic (SIP provider, updates)
+  # and the replies to it are allowed.
+  - path: /etc/nftables.conf
+    permissions: '0644'
+    content: |
+      #!/usr/sbin/nft -f
+      flush ruleset
+
+      table inet filter {
+        chain input {
+          type filter hook input priority filter; policy drop;
+
+          iif "lo" accept
+          ct state established,related accept
+          ct state invalid drop
+
+          # Ping, and the IPv6 messages every network needs
+          meta l4proto { icmp, ipv6-icmp } accept
+          # DHCPv6 replies from the router
+          ip6 saddr fe80::/10 udp dport 546 accept
+
+          # SSH, only from private (home network) addresses
+          ip  saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 22 accept
+          ip6 saddr { fe80::/10, fc00::/7 } tcp dport 22 accept
+
+          # mDNS, so that "ssh piphone.local" works
+          udp dport 5353 accept
+        }
+
+        chain forward {
+          type filter hook forward priority filter; policy drop;
+        }
+      }
+
+  # Daily automatic updates. These files are written after the packages above
+  # are installed ("defer"), so that installing them does not overwrite these.
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    defer: true
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  # Debian security updates are included by default. This adds Raspberry Pi
+  # kernel and firmware updates.
+  - path: /etc/apt/apt.conf.d/51piphone-unattended-upgrades
+    defer: true
+    content: |
+      Unattended-Upgrade::Origins-Pattern {
+        "origin=Raspberry Pi Foundation,codename=${distro_codename}";
+      };
+
+runcmd:
+  - [systemctl, enable, --now, nftables]

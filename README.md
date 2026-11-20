@@ -1,8 +1,7 @@
 # piphone (v2)
 
-> **New development (November 2026).** This branch starts from scratch and
-> shares no history with `master`, which holds an unrelated 2018/19 attempt
-> (Twilio + Chromium).
+> **New development (November 2026).** Started from scratch. It replaces an
+> unrelated 2018/19 attempt (Twilio + Chromium) that used to be in this repo.
 
 A Raspberry Pi that calls real landline and mobile numbers. You type the
 number in a terminal over SSH and talk through a USB headset.
@@ -109,7 +108,7 @@ In the provider's web portal:
 ## 2. Install on the Pi
 
 ```bash
-git clone -b v2-new-development https://github.com/till-h/piphone.git
+git clone https://github.com/till-h/piphone.git
 cd piphone
 ./setup.sh        # asks for SIP username, server and password
 ```
